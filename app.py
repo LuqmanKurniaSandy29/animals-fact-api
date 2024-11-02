@@ -33,6 +33,11 @@ animals = {
     "25": {"name": "Seahorse", "fact": "Male seahorses are the ones who carry and give birth to the young."}
 }
 
+# Route dasar
+@app.route('/')
+def home():
+    return jsonify({"message": "Selamat datang di API hewan!"})
+
 # Classes for CRUD functionality
 class AnimalList(Resource):
     def get(self):
@@ -45,21 +50,25 @@ class AnimalList(Resource):
 
 class AnimalDetail(Resource):
     def get(self, animal_id):
-        if animal_id in animals:
+        animal = animals.get(animal_id)
+        if animal:
             return {
                 "error": False,
                 "message": "Success",
-                "animal": animals[animal_id]
+                "animal": animal
             }
         return {"error": True, "message": "Animal not found"}, 404
 
 class AddAnimal(Resource):
     def post(self):
         data = request.get_json()
+        if not data or "name" not in data or "fact" not in data:
+            return {"error": True, "message": "Invalid data"}, 400
+
         animal_id = str(len(animals) + 1)
         new_animal = {
-            "name": data.get("name"),
-            "fact": data.get("fact")
+            "name": data["name"],
+            "fact": data["fact"]
         }
         animals[animal_id] = new_animal
         return {
@@ -70,11 +79,12 @@ class AddAnimal(Resource):
 
 class UpdateAnimal(Resource):
     def put(self, animal_id):
-        if animal_id in animals:
+        animal = animals.get(animal_id)
+        if animal:
             data = request.get_json()
-            animal = animals[animal_id]
-            animal["name"] = data.get("name", animal["name"])
-            animal["fact"] = data.get("fact", animal["fact"])
+            if data:
+                animal["name"] = data.get("name", animal["name"])
+                animal["fact"] = data.get("fact", animal["fact"])
             return {
                 "error": False,
                 "message": "Animal updated successfully",
@@ -84,15 +94,16 @@ class UpdateAnimal(Resource):
 
 class DeleteAnimal(Resource):
     def delete(self, animal_id):
-        if animal_id in animals:
-            deleted_animal = animals.pop(animal_id)
+        animal = animals.pop(animal_id, None)
+        if animal:
             return {
                 "error": False,
                 "message": "Animal deleted successfully",
-                "animal": deleted_animal
+                "animal": animal
             }
         return {"error": True, "message": "Animal not found"}, 404
 
+# Adding resources to API
 api.add_resource(AnimalList, '/animals')
 api.add_resource(AnimalDetail, '/animals/<string:animal_id>')
 api.add_resource(AddAnimal, '/animals/add')
